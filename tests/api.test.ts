@@ -29,31 +29,13 @@ describe("POST /api/posts", () => {
     expect(res.body.id).toBeDefined();
   });
 
-  it("returns 400 when nickname is missing", async () => {
-    const res = await request(app)
-      .post("/api/posts")
-      .send({ content: "no name" });
-    expect(res.status).toBe(400);
-  });
-
-  it("returns 400 when content is missing", async () => {
-    const res = await request(app)
-      .post("/api/posts")
-      .send({ nickname: "user1" });
-    expect(res.status).toBe(400);
-  });
-
-  it("returns 400 when nickname is empty string", async () => {
-    const res = await request(app)
-      .post("/api/posts")
-      .send({ nickname: "", content: "something" });
-    expect(res.status).toBe(400);
-  });
-
-  it("returns 400 when content is empty string", async () => {
-    const res = await request(app)
-      .post("/api/posts")
-      .send({ nickname: "user1", content: "" });
+  it.each([
+    [{ content: "no name" }, "nickname is missing"],
+    [{ nickname: "user1" }, "content is missing"],
+    [{ nickname: "", content: "something" }, "nickname is empty string"],
+    [{ nickname: "user1", content: "" }, "content is empty string"],
+  ])("returns 400 when %s", async (body, _desc) => {
+    const res = await request(app).post("/api/posts").send(body);
     expect(res.status).toBe(400);
   });
 });
