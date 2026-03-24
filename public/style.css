@@ -137,7 +137,7 @@ body {
 }
 
 .compose-label::before {
-  content: '\270F';
+  content: '\2728';
   font-size: 1rem;
 }
 
