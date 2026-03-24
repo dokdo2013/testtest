@@ -11,7 +11,8 @@ router.get("/", async (_req: Request, res: Response) => {
 router.post("/", async (req: Request, res: Response) => {
   const { nickname, content } = req.body;
 
-  if (!nickname || !content || !nickname.trim() || !content.trim()) {
+  if (typeof nickname !== "string" || typeof content !== "string" ||
+      !nickname.trim() || !content.trim()) {
     res.status(400).json({ error: "nickname and content are required" });
     return;
   }
