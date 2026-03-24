@@ -24,6 +24,11 @@ router.post("/", async (req: Request, res: Response) => {
     return;
   }
 
+  if (trimmedNickname.length > 50 || trimmedContent.length > 2000) {
+    res.status(400).json({ error: "input too long" });
+    return;
+  }
+
   const post = await Post.create({ nickname: trimmedNickname, content: trimmedContent });
   res.status(201).json(post);
 });
