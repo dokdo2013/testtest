@@ -5,15 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>씨미 칭찬하기</title>
   <link rel="stylesheet" href="/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 </head>
 <body>
+  <!-- floating bubbles background -->
+  <div class="bubbles" aria-hidden="true">
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+  </div>
+
   <div class="container">
-    <header class="header">
+    <header class="header anim-entrance" style="--delay:0">
+      <div class="header-lottie" id="header-lottie"></div>
       <h1>씨미 <span>칭찬</span>하기</h1>
       <p class="subtitle"><span class="live-dot"></span>우리가 사랑하는 씨미의 좋은 점들</p>
     </header>
 
-    <form id="post-form" class="compose">
+    <form id="post-form" class="compose anim-entrance" style="--delay:1">
       <div class="compose-label">칭찬 한마디 남기기</div>
       <div class="input-row">
         <input
@@ -33,16 +45,25 @@
       ></textarea>
       <div class="compose-footer">
         <div class="typing-indicator" id="typing-indicator"></div>
-        <button type="submit">칭찬 보내기</button>
+        <button type="submit" id="submit-btn">
+          <span class="btn-text">칭찬 보내기</span>
+          <span class="btn-icon">&#x2728;</span>
+        </button>
       </div>
+      <!-- success burst overlay -->
+      <div class="success-burst" id="success-burst"></div>
     </form>
 
-    <div class="posts-section">
+    <div class="posts-section anim-entrance" style="--delay:2">
       <div class="posts-header">
         <h2>칭찬 모아보기</h2>
         <span class="post-count" id="post-count">0건</span>
       </div>
       <div id="posts"></div>
+      <div class="empty-state" id="empty-state" style="display:none">
+        <div id="empty-lottie" style="width:160px;height:160px;margin:0 auto"></div>
+        <p>아직 칭찬이 없어요. 첫 번째 칭찬을 남겨주세요!</p>
+      </div>
     </div>
   </div>
 
@@ -50,17 +71,68 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io();
-    const form = document.getElementById("post-form");
-    const postsDiv = document.getElementById("posts");
-    const nicknameInput = document.getElementById("nickname");
-    const contentInput = document.getElementById("content");
-    const typingEl = document.getElementById("typing-indicator");
-    const postCountEl = document.getElementById("post-count");
-    const connStatus = document.getElementById("connection-status");
+    var socket = io();
+    var form = document.getElementById("post-form");
+    var postsDiv = document.getElementById("posts");
+    var nicknameInput = document.getElementById("nickname");
+    var contentInput = document.getElementById("content");
+    var typingEl = document.getElementById("typing-indicator");
+    var postCountEl = document.getElementById("post-count");
+    var connStatus = document.getElementById("connection-status");
+    var submitBtn = document.getElementById("submit-btn");
+    var successBurst = document.getElementById("success-burst");
+    var emptyState = document.getElementById("empty-state");
 
-    let postCount = 0;
-    let typingTimeout = null;
+    var postCount = 0;
+    var typingTimeout = null;
+
+    /* ─── Lottie: header star animation ─── */
+    var headerAnim = lottie.loadAnimation({
+      container: document.getElementById("header-lottie"),
+      renderer: "svg",
+      loop: true,
+      autoplay: true,
+      path: "https://lottie.host/0cc3ea4c-72d6-4060-8697-36e6050f0bf6/FpzBkXpUOI.json"
+    });
+
+    /* ─── Lottie: empty state ─── */
+    var emptyAnim = lottie.loadAnimation({
+      container: document.getElementById("empty-lottie"),
+      renderer: "svg",
+      loop: true,
+      autoplay: true,
+      path: "https://lottie.host/182db95e-f0e0-4fc2-a8c9-a68b498ad237/FkYkpotFiG.json"
+    });
+
+    /* ─── Lottie: success burst (loaded on demand) ─── */
+    var burstAnim = null;
+
+    function playSuccessBurst() {
+      successBurst.style.display = "block";
+      if (burstAnim) {
+        burstAnim.goToAndPlay(0, true);
+      } else {
+        burstAnim = lottie.loadAnimation({
+          container: successBurst,
+          renderer: "svg",
+          loop: false,
+          autoplay: true,
+          path: "https://lottie.host/db103a2f-4be6-4cb4-8017-9e402dbf25c3/Hf2VHkmbsB.json"
+        });
+      }
+      setTimeout(function () { successBurst.style.display = "none"; }, 1600);
+    }
+
+    /* ─── Button squish ─── */
+    submitBtn.addEventListener("mousedown", function () {
+      submitBtn.classList.add("squish");
+    });
+    submitBtn.addEventListener("mouseup", function () {
+      submitBtn.classList.remove("squish");
+    });
+    submitBtn.addEventListener("mouseleave", function () {
+      submitBtn.classList.remove("squish");
+    });
 
     /* ─── Connection status ─── */
     socket.on("connect", function () {
@@ -123,7 +195,8 @@
     /* ─── Post card ─── */
     function createPostCard(post, animate) {
       var card = document.createElement("div");
-      card.className = animate ? "card card-enter" : "card";
+      card.className = "card";
+      if (animate) card.classList.add("card-enter");
 
       var header = document.createElement("div");
       header.className = "card-header";
@@ -145,21 +218,42 @@
 
       card.appendChild(header);
       card.appendChild(body);
+
+      /* tilt on hover via JS */
+      card.addEventListener("mousemove", function (e) {
+        var rect = card.getBoundingClientRect();
+        var x = (e.clientX - rect.left) / rect.width - 0.5;
+        var y = (e.clientY - rect.top) / rect.height - 0.5;
+        card.style.transform = "perspective(600px) rotateY(" + (x * 6) + "deg) rotateX(" + (-y * 6) + "deg) translateY(-3px)";
+      });
+      card.addEventListener("mouseleave", function () {
+        card.style.transform = "";
+      });
+
       return card;
     }
 
     function updateCount(n) {
       postCount = n;
       postCountEl.textContent = n + "건";
+      /* bounce the count badge */
+      postCountEl.classList.remove("badge-pop");
+      void postCountEl.offsetWidth;
+      postCountEl.classList.add("badge-pop");
+      /* empty state */
+      emptyState.style.display = n === 0 ? "block" : "none";
     }
 
-    /* ─── Load posts ─── */
+    /* ─── Load posts with stagger ─── */
     async function loadPosts() {
       var res = await fetch("/api/posts");
       var posts = await res.json();
       postsDiv.replaceChildren();
-      posts.forEach(function (post) {
-        postsDiv.appendChild(createPostCard(post, false));
+      posts.forEach(function (post, idx) {
+        var card = createPostCard(post, false);
+        card.classList.add("stagger-in");
+        card.style.animationDelay = (idx * 0.06) + "s";
+        postsDiv.appendChild(card);
       });
       updateCount(posts.length);
     }
@@ -180,15 +274,21 @@
       socket.emit("stopTyping");
       clearTimeout(typingTimeout);
 
+      /* button loading state */
+      submitBtn.classList.add("sending");
+
       var res = await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nickname: nickname, content: content }),
       });
 
+      submitBtn.classList.remove("sending");
+
       if (res.ok) {
         contentInput.value = "";
         contentInput.focus();
+        playSuccessBurst();
       }
     });
 
