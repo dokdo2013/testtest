@@ -31,8 +31,16 @@
         <input
           type="text"
           id="nickname"
-          placeholder="닉네임을 입력하세요"
+          placeholder="닉네임"
           maxlength="50"
+          required
+          autocomplete="off"
+        />
+        <input
+          type="password"
+          id="password"
+          placeholder="비밀번호"
+          maxlength="30"
           required
           autocomplete="off"
         />
@@ -75,6 +83,7 @@
     var form = document.getElementById("post-form");
     var postsDiv = document.getElementById("posts");
     var nicknameInput = document.getElementById("nickname");
+    var passwordInput = document.getElementById("password");
     var contentInput = document.getElementById("content");
     var typingEl = document.getElementById("typing-indicator");
     var postCountEl = document.getElementById("post-count");
@@ -216,8 +225,26 @@
       body.className = "card-content";
       body.textContent = post.content;
 
+      var actions = document.createElement("div");
+      actions.className = "card-actions";
+
+      var editBtn = document.createElement("button");
+      editBtn.className = "card-btn card-btn-edit";
+      editBtn.textContent = "수정";
+      editBtn.addEventListener("click", function () { handleEdit(post.id, card); });
+
+      var delBtn = document.createElement("button");
+      delBtn.className = "card-btn card-btn-del";
+      delBtn.textContent = "삭제";
+      delBtn.addEventListener("click", function () { handleDelete(post.id, card); });
+
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+
       card.appendChild(header);
       card.appendChild(body);
+      card.appendChild(actions);
+      card.dataset.postId = String(post.id);
 
       /* tilt on hover via JS */
       card.addEventListener("mousemove", function (e) {
@@ -231,6 +258,40 @@
       });
 
       return card;
+    }
+
+    /* ─── Edit handler ─── */
+    function handleEdit(postId, card) {
+      var contentEl = card.querySelector(".card-content");
+      var oldText = contentEl.textContent;
+      var pw = prompt("비밀번호를 입력하세요:");
+      if (!pw) return;
+      var newContent = prompt("수정할 내용:", oldText);
+      if (!newContent || !newContent.trim() || newContent.trim() === oldText) return;
+
+      fetch("/api/posts/" + postId, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newContent.trim(), password: pw }),
+      }).then(function (res) {
+        if (res.status === 403) { alert("비밀번호가 틀립니다."); return; }
+        if (!res.ok) { alert("수정에 실패했습니다."); return; }
+      });
+    }
+
+    /* ─── Delete handler ─── */
+    function handleDelete(postId, card) {
+      var pw = prompt("비밀번호를 입력하세요:");
+      if (!pw) return;
+
+      fetch("/api/posts/" + postId, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw }),
+      }).then(function (res) {
+        if (res.status === 403) { alert("비밀번호가 틀립니다."); return; }
+        if (!res.ok) { alert("삭제에 실패했습니다."); return; }
+      });
     }
 
     function updateCount(n) {
@@ -258,18 +319,39 @@
       updateCount(posts.length);
     }
 
-    /* ─── Real-time new post ─── */
+    /* ─── Real-time events ─── */
     socket.on("newPost", function (post) {
       postsDiv.prepend(createPostCard(post, true));
       updateCount(postCount + 1);
+    });
+
+    socket.on("updatePost", function (post) {
+      var card = document.querySelector('[data-post-id="' + post.id + '"]');
+      if (card) {
+        var contentEl = card.querySelector(".card-content");
+        if (contentEl) contentEl.textContent = post.content;
+        card.classList.add("card-enter");
+        setTimeout(function () { card.classList.remove("card-enter"); }, 500);
+      }
+    });
+
+    socket.on("deletePost", function (data) {
+      var card = document.querySelector('[data-post-id="' + data.id + '"]');
+      if (card) {
+        card.style.transition = "opacity 0.3s, transform 0.3s";
+        card.style.opacity = "0";
+        card.style.transform = "scale(0.9)";
+        setTimeout(function () { card.remove(); updateCount(postCount - 1); }, 300);
+      }
     });
 
     /* ─── Submit ─── */
     form.addEventListener("submit", async function (e) {
       e.preventDefault();
       var nickname = nicknameInput.value.trim();
+      var password = passwordInput.value;
       var content = contentInput.value.trim();
-      if (!nickname || !content) return;
+      if (!nickname || !content || !password) return;
 
       socket.emit("stopTyping");
       clearTimeout(typingTimeout);
@@ -280,7 +362,7 @@
       var res = await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nickname: nickname, content: content }),
+        body: JSON.stringify({ nickname: nickname, content: content, password: password }),
       });
 
       submitBtn.classList.remove("sending");

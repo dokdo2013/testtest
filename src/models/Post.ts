@@ -5,6 +5,7 @@ export class Post extends Model<InferAttributes<Post>, InferCreationAttributes<P
   declare id: CreationOptional<number>;
   declare nickname: string;
   declare content: string;
+  declare password: string;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 }
@@ -22,6 +23,10 @@ Post.init(
     },
     content: {
       type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    password: {
+      type: DataTypes.STRING(60),
       allowNull: false,
     },
     createdAt: DataTypes.DATE,

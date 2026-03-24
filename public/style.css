@@ -461,6 +461,48 @@ button[type="submit"]:hover .btn-icon {
   line-height: 1.65;
 }
 
+/* ═══ Card Actions ═══ */
+.card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 0.6rem;
+  justify-content: flex-end;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.card:hover .card-actions { opacity: 1; }
+
+.card-btn {
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-full);
+  background: var(--white);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.card-btn:active { transform: scale(0.93); }
+
+.card-btn-edit {
+  color: var(--sky-600);
+}
+.card-btn-edit:hover {
+  background: var(--sky-50);
+  border-color: var(--sky-300);
+}
+
+.card-btn-del {
+  color: var(--pink-400);
+}
+.card-btn-del:hover {
+  background: var(--pink-100);
+  border-color: var(--pink-300);
+}
+
 /* ═══ Card Animations ═══ */
 .card-enter {
   animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
