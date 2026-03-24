@@ -41,6 +41,22 @@ describe("POST /api/posts", () => {
     const res = await request(app).post("/api/posts").send(body);
     expect(res.status).toBe(400);
   });
+
+  it("returns 400 when nickname exceeds 50 chars", async () => {
+    const res = await request(app)
+      .post("/api/posts")
+      .send({ nickname: "a".repeat(51), content: "ok", password: "pw" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("input too long");
+  });
+
+  it("returns 400 when content exceeds 2000 chars", async () => {
+    const res = await request(app)
+      .post("/api/posts")
+      .send({ nickname: "ok", content: "a".repeat(2001), password: "pw" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("input too long");
+  });
 });
 
 describe("GET /api/posts excludes password", () => {
@@ -113,6 +129,22 @@ describe("PUT /api/posts/:id", () => {
       .send({ content: "x" });
     expect(res.status).toBe(400);
   });
+
+  it("returns 200 without content change (password-only)", async () => {
+    const res = await request(app)
+      .put(`/api/posts/${postId}`)
+      .send({ password: "mypass" });
+    expect(res.status).toBe(200);
+    expect(res.body.content).toBe("updated");
+  });
+
+  it("returns 400 when updated content exceeds 2000 chars", async () => {
+    const res = await request(app)
+      .put(`/api/posts/${postId}`)
+      .send({ content: "a".repeat(2001), password: "mypass" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("input too long");
+  });
 });
 
 describe("DELETE /api/posts/:id", () => {
@@ -124,6 +156,13 @@ describe("DELETE /api/posts/:id", () => {
       .post("/api/posts")
       .send({ nickname: "deleter", content: "to delete", password: "delpw" });
     postId = res.body.id;
+  });
+
+  it("returns 400 without password", async () => {
+    const res = await request(app)
+      .delete(`/api/posts/${postId}`)
+      .send({});
+    expect(res.status).toBe(400);
   });
 
   it("returns 403 with wrong password", async () => {
