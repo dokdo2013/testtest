@@ -10,6 +10,19 @@
 
 ---
 
+## Context7 Documentation References
+
+구현 시 아래 Context7 라이브러리 ID를 사용하여 공식 문서를 조회할 것. 각 태스크의 `Context7 조회` 단계에서 `mcp__context7__resolve-library-id` → `mcp__context7__query-docs` 순으로 호출한다.
+
+| Library | Context7 ID | 사용 태스크 |
+|---------|------------|------------|
+| Sequelize (공식 문서) | `/sequelize/website` | Task 2, 3 |
+| Express (공식 문서) | `/websites/expressjs_en` | Task 3, 4 |
+| Jest | `/jestjs/jest` | Task 2, 3 |
+| ts-jest | `/kulshekhar/ts-jest` | Task 1 |
+
+---
+
 ## File Map
 
 | File | Responsibility |
@@ -69,7 +82,15 @@ npm install -D typescript ts-node @types/express @types/node jest ts-jest @types
 }
 ```
 
-- [ ] **Step 3: Configure jest.config.ts**
+- [ ] **Step 3: Context7 — ts-jest 설정 확인**
+
+```
+mcp__context7__query-docs(libraryId: "/kulshekhar/ts-jest", query: "ts-jest configuration with jest.config.ts preset and testEnvironment")
+```
+
+공식 문서에서 `preset: "ts-jest"` 설정과 권장 옵션을 확인한 뒤 아래 설정에 반영한다.
+
+- [ ] **Step 4: Configure jest.config.ts**
 
 ```ts
 import type { Config } from "jest";
@@ -84,7 +105,7 @@ const config: Config = {
 export default config;
 ```
 
-- [ ] **Step 4: Add scripts to package.json**
+- [ ] **Step 5: Add scripts to package.json**
 
 Add to `package.json` scripts:
 ```json
@@ -97,7 +118,7 @@ Add to `package.json` scripts:
 }
 ```
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add package.json package-lock.json tsconfig.json jest.config.ts
@@ -113,7 +134,23 @@ git commit -m "chore: scaffold project with TypeScript, Express, Sequelize, Jest
 - Create: `src/models/Post.ts`
 - Create: `tests/model.test.ts`
 
-- [ ] **Step 1: Write the failing model test**
+- [ ] **Step 1: Context7 — Sequelize 모델 정의 문서 확인**
+
+```
+mcp__context7__query-docs(libraryId: "/sequelize/website", query: "Model definition with TypeScript InferAttributes InferCreationAttributes DataTypes init SQLite")
+```
+
+공식 문서에서 TypeScript 모델 정의 패턴(`InferAttributes`, `CreationOptional`), `DataTypes`, `Model.init()` 사용법을 확인한다. SQLite dialect 설정과 `allowNull` 제약 조건도 확인할 것.
+
+- [ ] **Step 2: Context7 — Jest 테스트 구조 확인**
+
+```
+mcp__context7__query-docs(libraryId: "/jestjs/jest", query: "beforeAll afterAll describe it expect async test setup teardown")
+```
+
+Jest의 `beforeAll`/`afterAll` lifecycle, `describe`/`it` 구조, `rejects.toThrow()` 등 비동기 에러 테스트 패턴을 확인한다.
+
+- [ ] **Step 3: Write the failing model test**
 
 ```ts
 // tests/model.test.ts
@@ -154,12 +191,12 @@ describe("Post model", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 4: Run test to verify it fails**
 
 Run: `npx jest tests/model.test.ts --verbose`
 Expected: FAIL — cannot find `../src/db` or `../src/models/Post`
 
-- [ ] **Step 3: Implement db.ts**
+- [ ] **Step 5: Implement db.ts**
 
 ```ts
 // src/db.ts
@@ -174,7 +211,7 @@ export const sequelize = new Sequelize({
 });
 ```
 
-- [ ] **Step 4: Implement Post model**
+- [ ] **Step 6: Implement Post model**
 
 ```ts
 // src/models/Post.ts
@@ -214,12 +251,12 @@ Post.init(
 );
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [ ] **Step 7: Run test to verify it passes**
 
 Run: `NODE_ENV=test npx jest tests/model.test.ts --verbose`
 Expected: 3 tests PASS
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/db.ts src/models/Post.ts tests/model.test.ts
@@ -235,7 +272,23 @@ git commit -m "feat: add Post model with Sequelize and unit tests"
 - Create: `src/app.ts`
 - Create: `tests/api.test.ts`
 
-- [ ] **Step 1: Write the failing API tests**
+- [ ] **Step 1: Context7 — Express Router 및 미들웨어 문서 확인**
+
+```
+mcp__context7__query-docs(libraryId: "/websites/expressjs_en", query: "express.Router express.json middleware express.static serving static files path.join")
+```
+
+Express의 `Router()`, `express.json()` 미들웨어, `express.static()` 정적 파일 서빙 설정을 공식 문서에서 확인한다.
+
+- [ ] **Step 2: Context7 — Sequelize findAll / create 쿼리 문서 확인**
+
+```
+mcp__context7__query-docs(libraryId: "/sequelize/website", query: "Model.findAll order DESC Model.create validation allowNull")
+```
+
+`findAll`의 `order` 옵션과 `create` 시 `allowNull` 제약 검증 동작을 확인한다.
+
+- [ ] **Step 3: Write the failing API tests**
 
 ```ts
 // tests/api.test.ts
@@ -318,12 +371,12 @@ describe("GET /api/posts after creation", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 4: Run test to verify it fails**
 
 Run: `NODE_ENV=test npx jest tests/api.test.ts --verbose`
 Expected: FAIL — cannot find `../src/app`
 
-- [ ] **Step 3: Implement routes/posts.ts**
+- [ ] **Step 5: Implement routes/posts.ts**
 
 ```ts
 // src/routes/posts.ts
@@ -352,7 +405,7 @@ router.post("/", async (req: Request, res: Response) => {
 export { router as postsRouter };
 ```
 
-- [ ] **Step 4: Implement app.ts**
+- [ ] **Step 6: Implement app.ts**
 
 ```ts
 // src/app.ts
@@ -369,12 +422,12 @@ app.use("/api/posts", postsRouter);
 export { app };
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [ ] **Step 7: Run test to verify it passes**
 
 Run: `NODE_ENV=test npx jest tests/api.test.ts --verbose`
 Expected: 7 tests PASS
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/routes/posts.ts src/app.ts tests/api.test.ts
@@ -388,7 +441,16 @@ git commit -m "feat: add POST/GET /api/posts routes with validation and tests"
 **Files:**
 - Create: `src/server.ts`
 
-- [ ] **Step 1: Implement server.ts**
+- [ ] **Step 1: Context7 — Express app.listen 및 Sequelize sync 문서 확인**
+
+```
+mcp__context7__query-docs(libraryId: "/websites/expressjs_en", query: "app.listen port callback")
+mcp__context7__query-docs(libraryId: "/sequelize/website", query: "sequelize.sync force alter options")
+```
+
+`app.listen()` 시그니처와 `sequelize.sync()` 옵션을 확인한다.
+
+- [ ] **Step 2: Implement server.ts**
 
 ```ts
 // src/server.ts
@@ -407,12 +469,12 @@ async function start() {
 start();
 ```
 
-- [ ] **Step 2: Verify server starts**
+- [ ] **Step 3: Verify server starts**
 
 Run: `npx ts-node src/server.ts &` then `curl http://localhost:3000/api/posts` then kill the process.
 Expected: `[]`
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add src/server.ts
