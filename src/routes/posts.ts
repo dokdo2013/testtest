@@ -62,7 +62,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     return;
   }
 
-  const post = await Post.findByPk(req.params.id);
+  const post = await Post.findByPk(Number(req.params.id));
   if (!post) {
     res.status(404).json({ error: "post not found" });
     return;
@@ -106,7 +106,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
     return;
   }
 
-  const post = await Post.findByPk(req.params.id);
+  const post = await Post.findByPk(Number(req.params.id));
   if (!post) {
     res.status(404).json({ error: "post not found" });
     return;
