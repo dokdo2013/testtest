@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CIME 장점 공유</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>CIME 장점 공유</h1>
+
+    <form id="post-form">
+      <input
+        type="text"
+        id="nickname"
+        placeholder="닉네임"
+        maxlength="50"
+        required
+      />
+      <textarea
+        id="content"
+        placeholder="CIME의 장점을 공유해주세요!"
+        rows="3"
+        required
+      ></textarea>
+      <button type="submit">작성하기</button>
+    </form>
+
+    <div id="posts"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("post-form");
+    const postsDiv = document.getElementById("posts");
+    const nicknameInput = document.getElementById("nickname");
+    const contentInput = document.getElementById("content");
+
+    function createPostCard(post) {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const header = document.createElement("div");
+      header.className = "card-header";
+
+      const name = document.createElement("strong");
+      name.textContent = post.nickname;
+
+      const date = document.createElement("span");
+      date.className = "date";
+      date.textContent = new Date(post.createdAt).toLocaleString("ko-KR");
+
+      header.appendChild(name);
+      header.appendChild(date);
+
+      const body = document.createElement("p");
+      body.textContent = post.content;
+
+      card.appendChild(header);
+      card.appendChild(body);
+      return card;
+    }
+
+    async function loadPosts() {
+      const res = await fetch("/api/posts");
+      const posts = await res.json();
+      postsDiv.replaceChildren();
+      posts.forEach(function (post) {
+        postsDiv.appendChild(createPostCard(post));
+      });
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nickname = nicknameInput.value.trim();
+      const content = contentInput.value.trim();
+      if (!nickname || !content) return;
+
+      const res = await fetch("/api/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname, content }),
+      });
+
+      if (res.ok) {
+        nicknameInput.value = "";
+        contentInput.value = "";
+        await loadPosts();
+      }
+    });
+
+    loadPosts();
+  </script>
+</body>
+</html>
