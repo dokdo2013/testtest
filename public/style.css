@@ -217,7 +217,13 @@ body {
   font-size: 1rem;
 }
 
-.input-row { margin-bottom: 0.6rem; }
+.input-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.input-row input { flex: 1; }
 
 input, textarea {
   width: 100%;
@@ -244,7 +250,7 @@ input:focus, textarea:focus {
 textarea {
   resize: vertical;
   min-height: 76px;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.5rem;
 }
 
 .compose-footer {
@@ -577,6 +583,7 @@ button[type="submit"]:hover .btn-icon {
   .container { padding: 1.5rem 1rem; }
   .header h1 { font-size: 1.8rem; }
   .header-lottie { width: 60px; height: 60px; }
+  .input-row { flex-direction: column; }
   .compose-footer { flex-direction: column-reverse; gap: 0.6rem; align-items: stretch; }
   button[type="submit"] { justify-content: center; border-radius: var(--radius-sm); }
   .bubbles { display: none; }
