@@ -30,6 +30,13 @@ router.post("/", async (req: Request, res: Response) => {
   }
 
   const post = await Post.create({ nickname: trimmedNickname, content: trimmedContent });
+
+  const { getIO } = require("../socket");
+  const io = getIO();
+  if (io) {
+    io.emit("newPost", post.toJSON());
+  }
+
   res.status(201).json(post);
 });
 

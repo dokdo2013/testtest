@@ -8,52 +8,139 @@
 </head>
 <body>
   <div class="container">
-    <h1>CIME 장점 공유</h1>
+    <header class="header">
+      <h1>CIME의 <span>장점</span>을 공유하세요</h1>
+      <p class="subtitle"><span class="live-dot"></span>실시간 커뮤니티 보드</p>
+    </header>
 
-    <form id="post-form">
-      <input
-        type="text"
-        id="nickname"
-        placeholder="닉네임"
-        maxlength="50"
-        required
-      />
+    <form id="post-form" class="compose">
+      <div class="compose-label">새 글 작성</div>
+      <div class="input-row">
+        <input
+          type="text"
+          id="nickname"
+          placeholder="닉네임을 입력하세요"
+          maxlength="50"
+          required
+          autocomplete="off"
+        />
+      </div>
       <textarea
         id="content"
-        placeholder="CIME의 장점을 공유해주세요!"
+        placeholder="CIME 서비스를 사용하면서 느낀 장점을 자유롭게 공유해주세요"
         rows="3"
         required
       ></textarea>
-      <button type="submit">작성하기</button>
+      <div class="compose-footer">
+        <div class="typing-indicator" id="typing-indicator"></div>
+        <button type="submit">게시하기</button>
+      </div>
     </form>
 
-    <div id="posts"></div>
+    <div class="posts-section">
+      <div class="posts-header">
+        <h2>공유된 장점</h2>
+        <span class="post-count" id="post-count">0건</span>
+      </div>
+      <div id="posts"></div>
+    </div>
   </div>
 
+  <div class="connection-status" id="connection-status"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
   <script>
+    const socket = io();
     const form = document.getElementById("post-form");
     const postsDiv = document.getElementById("posts");
     const nicknameInput = document.getElementById("nickname");
     const contentInput = document.getElementById("content");
+    const typingEl = document.getElementById("typing-indicator");
+    const postCountEl = document.getElementById("post-count");
+    const connStatus = document.getElementById("connection-status");
 
-    function createPostCard(post) {
-      const card = document.createElement("div");
-      card.className = "card";
+    let postCount = 0;
+    let typingTimeout = null;
 
-      const header = document.createElement("div");
+    /* ─── Connection status ─── */
+    socket.on("connect", function () {
+      connStatus.textContent = "connected";
+      connStatus.className = "connection-status visible connected";
+      setTimeout(function () { connStatus.classList.remove("visible"); }, 2000);
+    });
+
+    socket.on("disconnect", function () {
+      connStatus.textContent = "reconnecting...";
+      connStatus.className = "connection-status visible disconnected";
+    });
+
+    /* ─── Typing indicator ─── */
+    function emitTyping() {
+      var nick = nicknameInput.value.trim();
+      socket.emit("typing", { nickname: nick || "" });
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(function () {
+        socket.emit("stopTyping");
+      }, 3000);
+    }
+
+    contentInput.addEventListener("input", emitTyping);
+    nicknameInput.addEventListener("input", function () {
+      if (contentInput.value.trim()) emitTyping();
+    });
+
+    socket.on("typingUsers", function (names) {
+      if (!names || names.length === 0) {
+        typingEl.textContent = "";
+        typingEl.className = "typing-indicator";
+        return;
+      }
+
+      typingEl.className = "typing-indicator active";
+      typingEl.replaceChildren();
+
+      var text;
+      if (names.length === 1) {
+        text = names[0] + "님이 작성 중";
+      } else if (names.length === 2) {
+        text = names[0] + ", " + names[1] + "님이 작성 중";
+      } else {
+        text = names[0] + " 외 " + (names.length - 1) + "명이 작성 중";
+      }
+
+      var span = document.createElement("span");
+      span.textContent = text;
+      typingEl.appendChild(span);
+
+      var dots = document.createElement("span");
+      dots.className = "typing-dots";
+      for (var i = 0; i < 3; i++) {
+        dots.appendChild(document.createElement("span"));
+      }
+      typingEl.appendChild(dots);
+    });
+
+    /* ─── Post card ─── */
+    function createPostCard(post, animate) {
+      var card = document.createElement("div");
+      card.className = animate ? "card card-enter" : "card";
+
+      var header = document.createElement("div");
       header.className = "card-header";
 
-      const name = document.createElement("strong");
+      var name = document.createElement("span");
+      name.className = "card-nickname";
       name.textContent = post.nickname;
 
-      const date = document.createElement("span");
-      date.className = "date";
+      var date = document.createElement("span");
+      date.className = "card-date";
       date.textContent = new Date(post.createdAt).toLocaleString("ko-KR");
 
       header.appendChild(name);
       header.appendChild(date);
 
-      const body = document.createElement("p");
+      var body = document.createElement("p");
+      body.className = "card-content";
       body.textContent = post.content;
 
       card.appendChild(header);
@@ -61,31 +148,47 @@
       return card;
     }
 
-    async function loadPosts() {
-      const res = await fetch("/api/posts");
-      const posts = await res.json();
-      postsDiv.replaceChildren();
-      posts.forEach(function (post) {
-        postsDiv.appendChild(createPostCard(post));
-      });
+    function updateCount(n) {
+      postCount = n;
+      postCountEl.textContent = n + "건";
     }
 
-    form.addEventListener("submit", async (e) => {
+    /* ─── Load posts ─── */
+    async function loadPosts() {
+      var res = await fetch("/api/posts");
+      var posts = await res.json();
+      postsDiv.replaceChildren();
+      posts.forEach(function (post) {
+        postsDiv.appendChild(createPostCard(post, false));
+      });
+      updateCount(posts.length);
+    }
+
+    /* ─── Real-time new post ─── */
+    socket.on("newPost", function (post) {
+      postsDiv.prepend(createPostCard(post, true));
+      updateCount(postCount + 1);
+    });
+
+    /* ─── Submit ─── */
+    form.addEventListener("submit", async function (e) {
       e.preventDefault();
-      const nickname = nicknameInput.value.trim();
-      const content = contentInput.value.trim();
+      var nickname = nicknameInput.value.trim();
+      var content = contentInput.value.trim();
       if (!nickname || !content) return;
 
-      const res = await fetch("/api/posts", {
+      socket.emit("stopTyping");
+      clearTimeout(typingTimeout);
+
+      var res = await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nickname, content }),
+        body: JSON.stringify({ nickname: nickname, content: content }),
       });
 
       if (res.ok) {
-        nicknameInput.value = "";
         contentInput.value = "";
-        await loadPosts();
+        contentInput.focus();
       }
     });
 
